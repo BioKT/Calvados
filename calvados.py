@@ -174,7 +174,7 @@ class OMMsystem(object):
     A class for running simulation using the Calvados model using OpenMM
 
     '''
-    def __init__(self, model, n_chains=1, name=None):
+    def __init__(self, model, n_chains=1, name=None, box=None):
         '''
         Parameters
         ----------
@@ -184,6 +184,10 @@ class OMMsystem(object):
         n_chains : int, list
             Number of chains. Either a single integer value for all proteins
             or a list of values with length equal to the number of proteins.
+        name : str
+            Root name for output
+        box : list
+            Dimensions in x,y,z 
 
         '''
         system = openmm.System()
@@ -200,37 +204,60 @@ class OMMsystem(object):
          
         if not name:
             self.name = '-'.join("%s_%i"%(p.name, self.n_chains[i]) for i,p in enumerate(model.prot))
-            print (self.name)
+        else:
+            self.name = name
+        print ("Setting root for filenames: %s"%self.name)
 
-        self.set_box_vectors()
-        self.set_config()
+        self.set_box_vectors(box)
+
+        self.set_config(box)
         self.set_forcefield()
 
-    def set_box_vectors(self):
+    def set_box_vectors(self, box):
         '''
         Sets box vectors. Uses length of sequence as proxy for box size
+
+        Parameters
+        ----------
+        box : list
+            Dimensions in x,y,z
 
         '''
         N = np.max([len(p.fasta) for p in self.model.prot])
         L = N*0.38+10
 
         a = unit.Quantity(np.zeros([3]), unit.nanometers)
-        a[0] = L * unit.nanometers
         b = unit.Quantity(np.zeros([3]), unit.nanometers)
-        b[1] = L * unit.nanometers
         c = unit.Quantity(np.zeros([3]), unit.nanometers)
-        c[2] = L * unit.nanometers
+        if not box:
+            print (" Automatically setting cubic box length: ", L)
+            a[0] = L * unit.nanometers
+            b[1] = L * unit.nanometers
+            c[2] = L * unit.nanometers
+        else:
+            print (" Manually setting box size: ", box)
+            x,y,z = box
+            a[0] = x * unit.nanometers
+            b[1] = y * unit.nanometers
+            c[2] = z * unit.nanometers
 
         self.system.setDefaultPeriodicBoxVectors(a, b, c)
 
-    def set_config(self):
+    def set_config(self, box):
         '''
         Defines initial configuration 
+
+        Parameters
+        ----------
+        box : list
+            Dimensions in x,y,z
 
         '''
         N = np.max([len(p.fasta) for p in self.model.prot])
         L = N*0.38+10
         margin = 1
+        if box:
+            L = np.min(box)
 
         n_chains = self.n_chains 
         prot = self.model.prot
