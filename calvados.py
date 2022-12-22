@@ -151,11 +151,11 @@ class CalvadosModel(object):
                 self.prot = [proteins_df.loc[x] for x in prot]
             else:
                 print ("Unrecognized data type")
+            self.set_params()
         except KeyError as e:
             print (e)
             print ("The protein requested was not found in the proteins database\n")
             print ("Available values are:", [x for x in proteins_df['name']]) 
-        self.set_params()
 
     def set_params(self):
         '''
@@ -186,8 +186,8 @@ class OMMsystem(object):
             or a list of values with length equal to the number of proteins.
         name : str
             Root name for output
-        box : list
-            Dimensions in x,y,z 
+        box : int/list
+            Length for cubic boxes and x,y,z values for slabs
 
         '''
         system = openmm.System()
@@ -219,8 +219,8 @@ class OMMsystem(object):
 
         Parameters
         ----------
-        box : list
-            Dimensions in x,y,z
+        box : int/list
+            Length for cubic boxes and x,y,z values for slabs
 
         '''
         N = np.max([len(p.fasta) for p in self.model.prot])
@@ -236,7 +236,10 @@ class OMMsystem(object):
             c[2] = L * unit.nanometers
         else:
             print (" Manually setting box size: ", box)
-            x,y,z = box
+            try:
+                x,y,z = box
+            except TypeError:
+                x = box; y = box; z = box
             a[0] = x * unit.nanometers
             b[1] = y * unit.nanometers
             c[2] = z * unit.nanometers
@@ -249,8 +252,87 @@ class OMMsystem(object):
 
         Parameters
         ----------
+        box : int/list
+            Length for cubic boxes and x,y,z values for slabs
+
+        '''
+        if isinstance(box, int):
+            self.build_cube(box)
+        else:
+            self.build_slab(box)
+
+    def build_cube(self, box):
+        '''
+        Builds cubic configuration
+
+        Parameters
+        ----------
         box : list
-            Dimensions in x,y,z
+            Length for cubic boxes and x,y,z values for slabs
+
+        '''
+        N = np.max([len(p.fasta) for p in self.model.prot])
+        margin = 1
+        L = box
+
+        n_chains = self.n_chains 
+        prot = self.model.prot
+
+        top = md.Topology()
+        pos = []
+
+        for i,p in enumerate(prot):
+            print (" Creating XY coordinates for %i chains of protein %s\n"%(n_chains[i], p.name))
+            ni = 0 
+            xyz = np.empty(0)
+            while True:
+                x,y,z = np.random.rand(3)*(L-margin)-(L-margin)/2
+                x1 = x-L if x>0 else x+L
+                y1 = y-L if y>0 else y+L
+                z1 = z-L if z>0 else z+L
+                try:
+                    if np.all(np.linalg.norm(xyz-[x,y,z],axis=1)>.6):
+                        if np.all(np.linalg.norm(xyz-[x1,y,z],axis=1)>.6):
+                            if np.all(np.linalg.norm(xyz-[x,y1,z],axis=1)>.6):
+                                if np.all(np.linalg.norm(xyz-[x,y,z1],axis=1)>.6):
+                                    xyz = np.append(xyz,[x,y,z]).reshape((-1,3))
+                                    ni += 1
+                except ValueError:
+                    xyz = np.append(xyz, np.random.rand(3)*(L-margin)-(L-margin)/2).reshape((-1,3))
+                    ni += 1
+                if ni >= n_chains[i]:
+                    ni = 0
+                    break
+
+            for x, y, z in xyz[:n_chains[i]]:
+                chain = top.add_chain()
+                N = len(p.fasta)
+                pos.append([[x,y,z +(i-N/2.)*.38] for i in range(N)])
+                for j,resname in enumerate(p.fasta):
+                    resname3 = self.model.residues.loc[resname, 'three']
+                    residue = top.add_residue(resname3, chain, resSeq=j+1)
+                    top.add_atom('CA', element=md.element.carbon, \
+                            residue=residue, serial=j+1)
+                for j in range(chain.n_atoms-1):
+                    top.add_bond(chain.atom(j), chain.atom(j+1))
+
+        self.top = top
+        try:
+            assert(os.path.isdir('data'))
+        except AssertionError as e:
+            print (e)
+            os.makedirs('data')
+        md.Trajectory(np.vstack(pos), top, 0, \
+              [L, L, L], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
+
+    def build_slab(self, box):
+        '''
+        Builds slab configuration
+
+        Parameters
+        ----------
+        box : list
+            Length for cubic boxes and x,y,z values for slabs
 
         '''
         N = np.max([len(p.fasta) for p in self.model.prot])
@@ -269,18 +351,21 @@ class OMMsystem(object):
             print (" Creating XY coordinates for %i chains of protein %s\n"%(n_chains[i], p.name))
             ni = 0 
             xy = np.empty(0)
-            for x,y in np.random.rand(1000,2)*(L-margin)-(L-margin)/2:
+            while True:
+                x,y = np.random.rand(2)*(L-margin)-(L-margin)/2
                 x1 = x-L if x>0 else x+L
                 y1 = y-L if y>0 else y+L
                 try:
-                    if np.all(np.linalg.norm(xy-[x,y],axis=1)>.7):
-                        if np.all(np.linalg.norm(xy-[x1,y],axis=1)>.7):
-                            if np.all(np.linalg.norm(xy-[x,y1],axis=1)>.7):
+                    if np.all(np.linalg.norm(xy-[x,y],axis=1)>.6):
+                        if np.all(np.linalg.norm(xy-[x1,y],axis=1)>.6):
+                            if np.all(np.linalg.norm(xy-[x,y1],axis=1)>.6):
                                 xy = np.append(xy,[x,y]).reshape((-1,2))
                                 ni += 1
+
                 except ValueError:
                     xy = np.append(xy,np.random.rand(2)*(L-margin)-(L-margin)/2).reshape((-1,2))
                     ni += 1
+
                 if ni >= n_chains[i]:
                     ni = 0
                     break
@@ -304,7 +389,7 @@ class OMMsystem(object):
             print (e)
             os.makedirs('data')
         md.Trajectory(np.vstack(pos), top, 0, \
-              [L,L,L], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
+              [box[0], box[1], box[2]], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
 
     def set_forcefield(self):
         '''
@@ -427,14 +512,14 @@ class OMMrunner(object):
         if os.path.isfile(self.cpt):
             self.simulation.loadCheckpoint(self.cpt)
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    int(1e3), append=True))
+                                    int(1e4), append=True))
         else:
             self.simulation.context.setPositions(self.pdb.positions)
             self.simulation.minimizeEnergy()
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    int(1e3)))
+                                    int(1e4)))
         self.simulation.reporters.append(app.statedatareporter.StateDataReporter(self.log, \
-                int(1e3), potentialEnergy=True, temperature=True, step=True, \
+                int(1e4), potentialEnergy=True, temperature=True, step=True, \
                   speed=True, elapsedTime=True,separator='\t'))
 
     def run(self, time=0.1):

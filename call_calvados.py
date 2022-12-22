@@ -5,12 +5,13 @@ import calvados
 # 1 synuclein
 model1 = calvados.CalvadosModel()
 model1.add_proteins("aS_WT")
-system1 = calvados.OMMsystem(model1)
+#system1 = calvados.OMMsystem(model1)
 #ommrunner1 = calvados.OMMrunner(system1)
 
 ## 20 synuclein
-system1_1 = calvados.OMMsystem(model1, n_chains=20)
-#ommrunner1_1 = calvados.OMMrunner(system1_1)
+system1_1 = calvados.OMMsystem(model1, n_chains=100, box=[200, 200, 200], name='aS_WT_100_L200')
+ommrunner1_1 = calvados.OMMrunner(system1_1)
+ommrunner1_1.run(0.1)
 
 ## 1 synuclein +  1 pLK
 model2 = calvados.CalvadosModel()
