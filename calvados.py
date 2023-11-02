@@ -18,38 +18,74 @@ import mdtraj as md
 
 eps_factor = 0.2
 
+def read_das_sequences(file="das_seqs.dat"):
+    '''
+    Reads protein sequences from Das et al, PNAS (2013) 
+
+    Parameters
+    ----------
+    file :str
+        File with sequences as list
+
+    Raises
+    ------
+    IOError            
+
+    '''
+    try:
+        sequences = np.loadtxt(file, skiprows=3, delimiter=',', \
+                   dtype={'names': ('seq', 'kappa', 'scd'), \
+                  'formats':('S50', 'f', 'f')})
+    except IOError as e:
+        print (e)
+        sys.exit()
+
+    proteins = {}
+    for i,seq in enumerate(sequences):
+        name, sequence = "das%i"%i, str(seq)
+        print (name, sequence)
+        proteins[name] = {}
+        proteins[name]['name'] = name
+        proteins[name]['fasta'] = sequence
+        proteins[name]['eps_factor'] = 0.2
+        proteins[name]['pH'] = 7
+        proteins[name]['ionic'] = 0.15
+    proteins = proteins
+    proteins_df = pd.DataFrame.from_dict(proteins, orient='index')
+    return proteins_df
+
 def read_fasta_sequences(file_fasta):
-        '''
-        Reads protein sequences in fasta format
+    '''
+    Reads protein sequences in fasta format
 
-        Parameters
-        ----------
-        file_fasta :str
-            File with sequences in fasta format
+    Parameters
+    ----------
+    file_fasta :str
+        File with sequences in fasta format
 
-        Raises
-        ------
-        IOError            
+    Raises
+    ------
+    IOError            
 
-        '''
-        try:
-            fasta_sequences = SeqIO.parse(open(file_fasta), 'fasta')
-        except IOError as e:
-            print (e)
-            pass
+    '''
+    try:
+        fasta_sequences = SeqIO.parse(open(file_fasta), 'fasta')
+    except IOError as e:
+        print (e)
+        pass
 
-        proteins = {}
-        for fasta in fasta_sequences:
-            name, sequence = fasta.id, str(fasta.seq)
-            proteins[name] = {}
-            proteins[name]['name'] = name
-            proteins[name]['fasta'] = list(fasta)
-            proteins[name]['eps_factor'] = 0.2
-            proteins[name]['pH'] = 7
-            proteins[name]['ionic'] = 0.15
-        proteins = proteins
-        proteins_df = pd.DataFrame.from_dict(proteins, orient='index')
-        return proteins_df
+    proteins = {}
+    for fasta in fasta_sequences:
+        name, sequence = fasta.id, str(fasta.seq)
+        proteins[name] = {}
+        proteins[name]['name'] = name
+        proteins[name]['fasta'] = list(fasta)
+        proteins[name]['eps_factor'] = 0.2
+        proteins[name]['pH'] = 7
+        proteins[name]['ionic'] = 0.15
+    proteins = proteins
+    proteins_df = pd.DataFrame.from_dict(proteins, orient='index')
+    return proteins_df
 
 def genParamsLJ(df, prot):
     fasta = prot.fasta.copy()
@@ -130,7 +166,7 @@ class CalvadosModel(object):
             return
         self.residues = residues.set_index('one')
 
-    def add_proteins(self, prot, file_fasta="sequences.fasta"):
+    def add_proteins(self, prot, file_fasta="sequences.fasta", file_das='das_seqs.dat'):
         '''
         Adds proteins to object
 
@@ -142,7 +178,8 @@ class CalvadosModel(object):
             File with sequences in fasta format
 
         '''
-        proteins_df = read_fasta_sequences(file_fasta)
+        #proteins_df = read_fasta_sequences(file_fasta)
+        proteins_df = read_das_sequences(file_das)
 
         try:
             if isinstance(prot, str):
@@ -151,6 +188,7 @@ class CalvadosModel(object):
                 self.prot = [proteins_df.loc[x] for x in prot]
             else:
                 print ("Unrecognized data type")
+            print (self.prot)
             self.set_params()
         except KeyError as e:
             print (e)
@@ -165,7 +203,7 @@ class CalvadosModel(object):
         residues = self.residues
         prot = self.prot
         temp = self.temp
-
+        print (prot)
         self.paramsLJ = [genParamsLJ(residues, x) for x in prot]
         self.paramsDH = [genParamsDH(residues, x, temp) for x in prot]
 
