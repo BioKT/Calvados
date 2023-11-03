@@ -3,7 +3,7 @@
 # Read Tesei et al, PNAS (2021). DOI:10.1073/pnas.2111696118
 # All errors due to David De Sancho's intervention
 
-import os
+import os, sys
 import numpy as np
 import pandas as pd
 
@@ -33,7 +33,7 @@ def read_das_sequences(file="das_seqs.dat"):
 
     '''
     try:
-        sequences = np.loadtxt(file, skiprows=3, delimiter=',', \
+        das_proteins = np.loadtxt(file, skiprows=3, delimiter=',', \
                    dtype={'names': ('seq', 'kappa', 'scd'), \
                   'formats':('S50', 'f', 'f')})
     except IOError as e:
@@ -41,12 +41,11 @@ def read_das_sequences(file="das_seqs.dat"):
         sys.exit()
 
     proteins = {}
-    for i,seq in enumerate(sequences):
-        name, sequence = "das%i"%i, str(seq)
-        print (name, sequence)
+    for i, prot in enumerate(das_proteins):
+        name, sequence = "das%i"%i, str(prot['seq'], 'utf-8')
         proteins[name] = {}
         proteins[name]['name'] = name
-        proteins[name]['fasta'] = sequence
+        proteins[name]['fasta'] = list([x for x in sequence])
         proteins[name]['eps_factor'] = 0.2
         proteins[name]['pH'] = 7
         proteins[name]['ionic'] = 0.15
@@ -100,7 +99,6 @@ def genParamsLJ(df, prot):
     MWs = [r.loc[a,'MW'] for a in types]
     lj_eps = eps_factor*4.184
     return lj_eps, fasta, types, MWs
-
 
 def genParamsDH(df, prot, temp):
     pH = 7
@@ -160,13 +158,15 @@ class CalvadosModel(object):
 
         '''
         try:
-            residues = pd.read_csv(file_res).set_index('three', drop=False)
+            residues = pd.read_csv(file_res).set_index('three', \
+                    drop=False)
         except IOError as e:
             print (e)
             return
         self.residues = residues.set_index('one')
 
-    def add_proteins(self, prot, file_fasta="sequences.fasta", file_das='das_seqs.dat'):
+    def add_proteins(self, prot, file_fasta="sequences.fasta", \
+            file_das='das_seqs.dat'):
         '''
         Adds proteins to object
 
@@ -188,7 +188,6 @@ class CalvadosModel(object):
                 self.prot = [proteins_df.loc[x] for x in prot]
             else:
                 print ("Unrecognized data type")
-            print (self.prot)
             self.set_params()
         except KeyError as e:
             print (e)
@@ -550,14 +549,14 @@ class OMMrunner(object):
         if os.path.isfile(self.cpt):
             self.simulation.loadCheckpoint(self.cpt)
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    int(1e4), append=True))
+                                    int(1e3), append=True))
         else:
             self.simulation.context.setPositions(self.pdb.positions)
             self.simulation.minimizeEnergy()
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    int(1e4)))
+                                    int(1e3)))
         self.simulation.reporters.append(app.statedatareporter.StateDataReporter(self.log, \
-                int(1e4), potentialEnergy=True, temperature=True, step=True, \
+                int(1e3), potentialEnergy=True, temperature=True, step=True, \
                   speed=True, elapsedTime=True,separator='\t'))
 
     def run(self, time=0.1):
