@@ -165,10 +165,12 @@ class CalvadosModel(object):
             return
         self.residues = residues.set_index('one')
 
-    def add_proteins(self, prot, file_fasta="sequences.fasta", \
+    def add_proteins(self, prot, file_fasta=None, \
             file_das='das_seqs.dat'):
         '''
-        Adds proteins to object
+        Adds proteins to object. The user is expected
+        to either use the sequences by Das et al (PNAS, 2013)
+        or pass a file with fasta sequences.
 
         Parameters
         ----------
@@ -178,8 +180,10 @@ class CalvadosModel(object):
             File with sequences in fasta format
 
         '''
-        #proteins_df = read_fasta_sequences(file_fasta)
-        proteins_df = read_das_sequences(file_das)
+        if not file_fasta:
+            proteins_df = read_das_sequences(file_das)
+        else:
+            proteins_df = read_fasta_sequences(file_fasta)
 
         try:
             if isinstance(prot, str):
@@ -189,6 +193,7 @@ class CalvadosModel(object):
             else:
                 print ("Unrecognized data type")
             self.set_params()
+
         except KeyError as e:
             print (e)
             print ("The protein requested was not found in the proteins database\n")
@@ -202,7 +207,6 @@ class CalvadosModel(object):
         residues = self.residues
         prot = self.prot
         temp = self.temp
-        print (prot)
         self.paramsLJ = [genParamsLJ(residues, x) for x in prot]
         self.paramsDH = [genParamsDH(residues, x, temp) for x in prot]
 
@@ -494,7 +498,7 @@ class OMMsystem(object):
         outfile.close()
 
 class OMMrunner(object):
-    def __init__(self, system, platform='CPU'):
+    def __init__(self, system, platform='CPU', fdcd=1e3):
         '''
         Parameters
         ----------
@@ -502,6 +506,8 @@ class OMMrunner(object):
             The OMMsystem object
         platform : str
             The platform for running simulations. Options are CPU (default) and CUDA
+        fdcd : int
+            Frequency of output to DCD files
 
         '''
         self.system = system
@@ -521,7 +527,7 @@ class OMMrunner(object):
 
         self.gen_file_names(name, temp)
 
-        self.initialize()
+        self.initialize(fdcd)
 
 
     def gen_file_names(self, name, temp):
@@ -540,7 +546,7 @@ class OMMrunner(object):
         self.dcd = 'data/%s_T%gK.dcd'%(name, temp)
         self.log = 'data/%s_T%gK.log'%(name, temp)
 
-    def initialize(self):
+    def initialize(self, fdcd):
         '''
         Initializes the simulation either from checkpoints or 
         from initial coordinates and generates reporters
@@ -549,14 +555,14 @@ class OMMrunner(object):
         if os.path.isfile(self.cpt):
             self.simulation.loadCheckpoint(self.cpt)
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    int(1e3), append=True))
+                                    fdcd, append=True))
         else:
             self.simulation.context.setPositions(self.pdb.positions)
             self.simulation.minimizeEnergy()
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    int(1e3)))
+                                    fdcd)))
         self.simulation.reporters.append(app.statedatareporter.StateDataReporter(self.log, \
-                int(1e3), potentialEnergy=True, temperature=True, step=True, \
+                fdcd, potentialEnergy=True, temperature=True, step=True, \
                   speed=True, elapsedTime=True,separator='\t'))
 
     def run(self, time=0.1):
