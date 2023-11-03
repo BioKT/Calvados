@@ -498,7 +498,7 @@ class OMMsystem(object):
         outfile.close()
 
 class OMMrunner(object):
-    def __init__(self, system, platform='CPU', fdcd=1e3):
+    def __init__(self, system, platform='CPU', fdcd=int(1e3)):
         '''
         Parameters
         ----------
@@ -560,7 +560,7 @@ class OMMrunner(object):
             self.simulation.context.setPositions(self.pdb.positions)
             self.simulation.minimizeEnergy()
             self.simulation.reporters.append(app.dcdreporter.DCDReporter(self.dcd, \
-                                    fdcd)))
+                                    fdcd))
         self.simulation.reporters.append(app.statedatareporter.StateDataReporter(self.log, \
                 fdcd, potentialEnergy=True, temperature=True, step=True, \
                   speed=True, elapsedTime=True,separator='\t'))
