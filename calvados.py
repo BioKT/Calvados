@@ -18,7 +18,7 @@ import mdtraj as md
 
 eps_factor = 0.2
 
-def read_das_sequences(file="das_seqs.dat"):
+def read_das_sequences(file="das_seqs.dat", ionic=0.15):
     '''
     Reads protein sequences from Das et al, PNAS (2013) 
 
@@ -26,6 +26,8 @@ def read_das_sequences(file="das_seqs.dat"):
     ----------
     file :str
         File with sequences as list
+    ionic : float
+        Salt concentration in M
 
     Raises
     ------
@@ -48,12 +50,12 @@ def read_das_sequences(file="das_seqs.dat"):
         proteins[name]['fasta'] = list([x for x in sequence])
         proteins[name]['eps_factor'] = 0.2
         proteins[name]['pH'] = 7
-        proteins[name]['ionic'] = 0.15
+        proteins[name]['ionic'] = ionic 
     proteins = proteins
     proteins_df = pd.DataFrame.from_dict(proteins, orient='index')
     return proteins_df
 
-def read_fasta_sequences(file_fasta):
+def read_fasta_sequences(file_fasta, ionic=0.15):
     '''
     Reads protein sequences in fasta format
 
@@ -61,6 +63,8 @@ def read_fasta_sequences(file_fasta):
     ----------
     file_fasta :str
         File with sequences in fasta format
+    ionic : float
+        Salt concentration in M
 
     Raises
     ------
@@ -81,7 +85,7 @@ def read_fasta_sequences(file_fasta):
         proteins[name]['fasta'] = list(fasta)
         proteins[name]['eps_factor'] = 0.2
         proteins[name]['pH'] = 7
-        proteins[name]['ionic'] = 0.15
+        proteins[name]['ionic'] = ionic
     proteins = proteins
     proteins_df = pd.DataFrame.from_dict(proteins, orient='index')
     return proteins_df
