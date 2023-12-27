@@ -104,9 +104,9 @@ def genParamsLJ(df, prot):
     lj_eps = eps_factor*4.184
     return lj_eps, fasta, types, MWs
 
-def genParamsDH(df, prot, temp):
+def genParamsDH(df, prot, temp, ionic):
     pH = 7
-    ionic = 0.15
+    #ionic = 0.15
     kT = 8.3145*temp*1e-3
     fasta = prot.fasta.copy()
     r = df.copy()
@@ -133,7 +133,7 @@ class CalvadosModel(object):
     A class for building models with Calvados and running in OpenMM
 
     '''
-    def __init__(self, file_res="residues.csv", temp=300.):
+    def __init__(self, file_res="residues.csv", temp=300., ionic=0.15):
         '''
         Parameters
         ----------
@@ -145,7 +145,8 @@ class CalvadosModel(object):
 
         '''
         self.read_residues(file_res)
-        self.temp = temp 
+        self.temp = temp
+        self.ionic = ionic
 
     def read_residues(self, file_res):
         '''
@@ -185,9 +186,9 @@ class CalvadosModel(object):
 
         '''
         if not file_fasta:
-            proteins_df = read_das_sequences(file_das)
+            proteins_df = read_das_sequences(file_das, ionic=ionic)
         else:
-            proteins_df = read_fasta_sequences(file_fasta)
+            proteins_df = read_fasta_sequences(file_fasta, ionic=ionic)
 
         try:
             if isinstance(prot, str):
@@ -212,7 +213,7 @@ class CalvadosModel(object):
         prot = self.prot
         temp = self.temp
         self.paramsLJ = [genParamsLJ(residues, x) for x in prot]
-        self.paramsDH = [genParamsDH(residues, x, temp) for x in prot]
+        self.paramsDH = [genParamsDH(residues, x, temp, ionic) for x in prot]
 
 class OMMsystem(object):
     '''
