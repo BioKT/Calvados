@@ -142,7 +142,8 @@ class CalvadosModel(object):
         temp : float
             Temperature for generating parameters.
             Default temperature is 300 K
-
+        ionic : float
+            Salt concentration in M
         '''
         self.read_residues(file_res)
         self.temp = temp
@@ -186,9 +187,9 @@ class CalvadosModel(object):
 
         '''
         if not file_fasta:
-            proteins_df = read_das_sequences(file_das, ionic=ionic)
+            proteins_df = read_das_sequences(file_das, ionic=self.ionic)
         else:
-            proteins_df = read_fasta_sequences(file_fasta, ionic=ionic)
+            proteins_df = read_fasta_sequences(file_fasta, ionic=self.ionic)
 
         try:
             if isinstance(prot, str):
@@ -212,6 +213,7 @@ class CalvadosModel(object):
         residues = self.residues
         prot = self.prot
         temp = self.temp
+        ionic = self.ionic
         self.paramsLJ = [genParamsLJ(residues, x) for x in prot]
         self.paramsDH = [genParamsDH(residues, x, temp, ionic) for x in prot]
 
