@@ -320,8 +320,10 @@ class OMMsystem(object):
 
         '''
         N = np.max([len(p.fasta) for p in self.model.prot])
+        L = N*0.38+10
         margin = 1
-        L = box
+        if box:
+            L = np.min(box)
 
         n_chains = self.n_chains 
         prot = self.model.prot
@@ -332,30 +334,32 @@ class OMMsystem(object):
         for i,p in enumerate(prot):
             print (" Creating XY coordinates for %i chains of protein %s\n"%(n_chains[i], p.name))
             ni = 0 
-            xyz = np.empty(0)
+            xy = np.empty(0)
             while True:
-                x,y,z = np.random.rand(3)*(L-margin)-(L-margin)/2
+                x,y = np.random.rand(2)*(L-margin)-(L-margin)/2
                 x1 = x-L if x>0 else x+L
                 y1 = y-L if y>0 else y+L
-                z1 = z-L if z>0 else z+L
                 try:
-                    if np.all(np.linalg.norm(xyz-[x,y,z],axis=1)>.6):
-                        if np.all(np.linalg.norm(xyz-[x1,y,z],axis=1)>.6):
-                            if np.all(np.linalg.norm(xyz-[x,y1,z],axis=1)>.6):
-                                if np.all(np.linalg.norm(xyz-[x,y,z1],axis=1)>.6):
-                                    xyz = np.append(xyz,[x,y,z]).reshape((-1,3))
-                                    ni += 1
+                    if np.all(np.linalg.norm(xy-[x,y],axis=1)>.6):
+                        if np.all(np.linalg.norm(xy-[x1,y],axis=1)>.6):
+                            if np.all(np.linalg.norm(xy-[x,y1],axis=1)>.6):
+                                xy = np.append(xy,[x,y]).reshape((-1,2))
+                                ni += 1
+
                 except ValueError:
-                    xyz = np.append(xyz, np.random.rand(3)*(L-margin)-(L-margin)/2).reshape((-1,3))
+                    xy = np.append(xy,np.random.rand(2)*(L-margin)-(L-margin)/2).reshape((-1,2))
                     ni += 1
+
                 if ni >= n_chains[i]:
                     ni = 0
                     break
 
-            for x, y, z in xyz[:n_chains[i]]:
+            for x, y in xy[:n_chains[i]]:
                 chain = top.add_chain()
                 N = len(p.fasta)
-                pos.append([[x,y,z +(i-N/2.)*.38] for i in range(N)])
+                init = np.random.rand()*(L - N*0.38 - margin)
+
+                pos.append([[x,y, init+(i-N/2.)*.38] for i in range(N)])
                 for j,resname in enumerate(p.fasta):
                     resname3 = self.model.residues.loc[resname, 'three']
                     residue = top.add_residue(resname3, chain, resSeq=j+1)
@@ -371,7 +375,7 @@ class OMMsystem(object):
             print (e)
             os.makedirs('data')
         md.Trajectory(np.vstack(pos), top, 0, \
-              [L, L, L], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
+              [box[0], box[1], box[2]], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
 
     def build_slab(self, box):
         '''
