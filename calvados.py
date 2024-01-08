@@ -375,7 +375,7 @@ class OMMsystem(object):
             print (e)
             os.makedirs('data')
         md.Trajectory(np.vstack(pos), top, 0, \
-              [box[0], box[1], box[2]], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
+              [box, box, box], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
 
     def build_slab(self, box):
         '''
