@@ -148,6 +148,7 @@ class CalvadosModel(object):
         self.read_residues(file_res)
         self.temp = temp
         self.ionic = ionic
+        #print (self.residues)
 
     def read_residues(self, file_res):
         '''
@@ -222,7 +223,7 @@ class OMMsystem(object):
     A class for running simulation using the Calvados model using OpenMM
 
     '''
-    def __init__(self, model, n_chains=1, name=None, box=None):
+    def __init__(self, model, n_chains=1, name=None, box=None, ff='M1'):
         '''
         Parameters
         ----------
@@ -236,6 +237,8 @@ class OMMsystem(object):
             Root name for output
         box : int/list
             Length for cubic boxes and x,y,z values for slabs
+        ff : str
+            The hydrophobicity scale used as force field
 
         '''
         system = openmm.System()
@@ -257,9 +260,8 @@ class OMMsystem(object):
         print ("Setting root for filenames: %s"%self.name)
 
         self.set_box_vectors(box)
-
         self.set_config(box)
-        self.set_forcefield()
+        self.set_forcefield(ff)
 
     def set_box_vectors(self, box):
         '''
@@ -443,7 +445,7 @@ class OMMsystem(object):
         md.Trajectory(np.vstack(pos), top, 0, \
               [box[0], box[1], box[2]], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
 
-    def set_forcefield(self):
+    def set_forcefield(self, ff='M1'):
         '''
         Adds particles to system and creates interactions
 
@@ -451,8 +453,14 @@ class OMMsystem(object):
         n_chains = self.n_chains
         prot = self.model.prot
         residues = self.model.residues
+        if ff != 'M1':
+            try:
+                residues.lambdas = residues[ff]
+            except Exception as e:
+                print (" WARNING: Selected force field %s does not exist\n Going back to M1"%ff)
         paramsDH = self.model.paramsDH
         paramsLJ = self.model.paramsLJ
+        print (residues.lambdas)
 
         for k,p in enumerate(prot):
             for _ in range(n_chains[k]):
