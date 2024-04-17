@@ -445,7 +445,7 @@ class OMMsystem(object):
         md.Trajectory(np.vstack(pos), top, 0, \
               [box[0], box[1], box[2]], [90,90,90]).save_pdb('data/%s_top.pdb'%self.name)
 
-    def set_forcefield(self, ff='M1'):
+    def set_forcefield(self, ff=None):
         '''
         Adds particles to system and creates interactions
 
@@ -455,6 +455,7 @@ class OMMsystem(object):
         residues = self.model.residues
         if ff != 'M1':
             try:
+                print (" Using the %s parameters"%ff)
                 residues.lambdas = residues[ff]
             except Exception as e:
                 print (" WARNING: Selected force field %s does not exist\n Going back to M1"%ff)
