@@ -576,15 +576,22 @@ class OMMrunner(object):
                 fdcd, potentialEnergy=True, temperature=True, step=True, \
                   speed=True, elapsedTime=True,separator='\t'))
 
-    def run(self, time=0.1):
+    def run(self, steps=None, time=None):
         '''
         Runs MD simulation
 
         Parameters
         ----------
+        steps : int
+            Length of simulation run (in steps)
         time : float
             Length of simulation run (in hours)
 
         '''
-        self.simulation.runForClockTime(time*unit.hour, checkpointFile=self.cpt, \
+        if steps:
+            print ("Running for %i steps"%steps)
+            self.simulation.step(steps)
+        elif time:
+            print ("Running for %g hours"%time)
+            self.simulation.runForClockTime(time*unit.hour, checkpointFile=self.cpt, \
                            checkpointInterval=1*unit.hour)
