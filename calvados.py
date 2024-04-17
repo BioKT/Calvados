@@ -307,8 +307,10 @@ class OMMsystem(object):
 
         '''
         if isinstance(box, int):
+            print (" Building inital configuration in cubic box")
             self.build_cube(box)
         else:
+            print (" Building inital slab configuration")
             self.build_slab(box)
 
     def build_cube(self, box):
