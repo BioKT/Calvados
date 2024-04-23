@@ -391,11 +391,17 @@ class OMMsystem(object):
             Length for cubic boxes and x,y,z values for slabs
 
         '''
+
+        # checks on box size: Z > X,Y
+        assert box[2] > box[0], " z dimension in box must be the longest\n check your box dimensions"
+        assert box[2] > box[1], " z dimension in box must be the longest\n check your box dimensions"
+
         N = np.max([len(p.fasta) for p in self.model.prot])
         L = N*0.38+10
         margin = 1
         if box:
             L = np.min(box)
+
 
         n_chains = self.n_chains 
         prot = self.model.prot

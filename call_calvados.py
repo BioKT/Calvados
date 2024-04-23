@@ -10,10 +10,15 @@ ommrunner1 = calvados.OMMrunner(system1)
 #ommrunner1.run(time=0.01)
 ommrunner1.run(steps=10000)
 
-### 20 synuclein
-#system1_1 = calvados.OMMsystem(model1, n_chains=100, box=200, name='aS_WT_100_L200')
-#ommrunner1_1 = calvados.OMMrunner(system1_1)
-#ommrunner1_1.run(0.1)
+# 20 synuclein in cubic box
+system_multi = calvados.OMMsystem(model1, n_chains=20, box=200, name='aS_WT_20_L200')
+ommrunner_multi = calvados.OMMrunner(system_multi)
+#ommrunner_multi.run(steps=10000)
+
+# 20 synuclein in slab configuration
+system_slab = calvados.OMMsystem(model1, n_chains=20, box=[10, 10, 200], name='aS_WT_20_slab')
+ommrunner_slab = calvados.OMMrunner(system_slab)
+ommrunner_slab.run(steps=100000)
 
 ## 1 synuclein +  1 pLK
 #model2 = calvados.CalvadosModel()
